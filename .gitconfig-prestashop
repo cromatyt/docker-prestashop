@@ -1,7 +1,0 @@
-[core]
-    sshCommand = "ssh -i /home/david/perso/github/.ssh/github"
-
-[user]
-    name = cromatyt
-    email = cromatyt@protonmail.com
-
