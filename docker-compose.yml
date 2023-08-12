@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  mariadb:
+    image: mariadb:10.11.4
+    container_name: mariadb-presta
+    restart: unless-stopped
+    #env_file:
+    #  - .env
+    #cap_add:
+    #  - SYS_NICE
+    #command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MARIADB_USER=mariadb
+      - MARIADB_PASSWORD=password
+      - MARIADB_ROOT_PASSWORD=superpassword
+      - MARIADB_DATABASE=prestashop
+    volumes:
+      - ./mariadb/data:/var/lib/mysql
+      - ./mariadb/scripts/entrypoint-initdb.sql:/docker-entrypoint-initdb.d/mariadb_init.sql
+    expose:
+      - 3306/tcp
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      prestashop:
+        ipv4_address: 192.168.77.3
+    
+  adminer:
+    image: adminer:4.8.1-standalone
+    container_name: adminer-presta
+    restart: unless-stopped
+    ports:
+      - 8082:8080
+    networks:
+      prestashop:
+        ipv4_address: 192.168.77.6
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  prestashop:
+    image: prestashop/prestashop:8.1.0-8.1-apache
+    container_name: prestashop
+    restart: always
+    environment:
+      PS_DEV_MODE: 0
+      PS_INSTALL_AUTO: 1
+      DB_SERVER: mariadb-presta
+      DB_USER: mariadb
+      DB_PASSWD: password
+      DB_NAME: prestashop
+      DB_PREFIX: ps_
+      PS_INSTALL_DB: 0
+      PS_LANGUAGE: fr
+      PS_COUNTRY: FR
+      PS_DOMAIN: localhost:8088
+      PS_FOLDER_ADMIN: adminpath
+      PS_ENABLE_SSL: 0
+      ADMIN_MAIL: admin@localhost.fr
+      ADMIN_PASSWD: superlongpassword
+    volumes:
+      - ./prestashop/data:/var/www/html
+      - ./prestashop/apache2/apache2.conf:/etc/apache2/apache2.conf
+      #- ./prestashop/modules:/var/www/html/modules
+      #- ./prestashop/themes:/var/www/html/themes
+    ports:
+      - 8088:80
+      - 4443:443
+    networks:
+      prestashop:
+        ipv4_address: 192.168.77.2
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+networks:
+  prestashop:
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.77.0/24
+          gateway: 192.168.77.1

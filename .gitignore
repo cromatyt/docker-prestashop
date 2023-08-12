@@ -1,0 +1,7 @@
+.git
+.vscode
+
+./mariadb/data
+./prestashop/data
+./prestashop/plugins
+./prestashop/themes
